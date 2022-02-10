@@ -1,0 +1,73 @@
+  ' Start of iLogic rule =======================================================
+
+    ' Get the 3D PDF Add-In.
+    Dim oPDFAddIn As ApplicationAddIn
+    Dim oAddin As ApplicationAddIn
+    For Each oAddin In ThisApplication.ApplicationAddIns
+        If oAddin.ClassIdString = "{3EE52B28-D6E0-4EA4-8AA6-C2A266DEBB88}" Then
+            oPDFAddIn = oAddin
+            Exit For
+        End If
+    Next
+    
+    If oPDFAddIn Is Nothing Then
+        MsgBox("Inventor 3D PDF Addin not loaded.")
+        Exit Sub
+    End If
+    
+    Dim oPDFConvertor3D = oPDFAddIn.Automation
+    
+    'Set a reference to the active document (the document to be published).
+    Dim oDocument As Document = ThisApplication.ActiveEditDocument
+    
+    ' Create a NameValueMap objectfor all options...
+    Dim oOptions As NameValueMap = ThisApplication.TransientObjects.CreateNameValueMap
+    Dim STEPFileOptions As NameValueMap = ThisApplication.TransientObjects.CreateNameValueMap
+    
+    ' All Possible Options
+    ' Export file name and location...
+    oOptions.Value("FileOutputLocation") = "D:\Documentos\Universidad Nacional de Colombia\Materias y Electivas\Semestre XIII\Computacion Grafica\Repositorios\cg-autoreply\modelo3d.pdf"
+    ' Export annotations?
+    oOptions.Value("ExportAnnotations") = 1
+    ' Export work features?
+    oOptions.Value("ExportWokFeatures") = 1
+    ' Attach STEP file to 3D PDF?
+    oOptions.Value("GenerateAndAttachSTEPFile") = True
+    ' What quality (high quality takes longer to export)
+    'oOptions.Value("VisualizationQuality") = AccuracyEnumVeryHigh
+    'oOptions.Value("VisualizationQuality") = AccuracyEnum.kHigh
+    'oOptions.Value("VisualizationQuality") = AccuracyEnum.kMedium
+    oOptions.Value("VisualizationQuality") = AccuracyEnum.kLow
+    ' Limit export to entities in selected view representation(s)
+    oOptions.Value("LimitToEntitiesInDVRs") = True
+    ' Open the 3D PDF when export is complete?
+    oOptions.Value("ViewPDFWhenFinished") = False
+
+    ' Export all properties?
+    oOptions.Value("ExportAllProperties") = True
+	oOptions.Value("ExportTemplate") = "C:\Users\Public\Documents\Autodesk\Inventor 2022\Templates\es-ES\Sample Part Template.pdf"
+    
+    ' Set the design view(s) to export - note here I am exporting only the active design view (view representation)
+    Dim sDesignViews(0) As String
+    sDesignViews(0) = oDocument.ComponentDefinition.RepresentationsManager.ActiveDesignViewRepresentation.Name
+    oOptions.Value("ExportDesignViewRepresentations") = sDesignViews
+    
+    ' Step file options (if applicable) ==============================
+    If oOptions.Value("GenerateAndAttachSTEPFile") = True Then
+        STEPFileOptions.Value("ApplicationProtocolType") = 2 '(AP203)
+        'STEPFileOptions.Value("ApplicationProtocolType") = 3 '(AP214IS)
+        'STEPFileOptions.Value("ApplicationProtocolType") = 4 '(AP242)
+        STEPFileOptions.Value("Author") = ThisApplication.UserName
+        STEPFileOptions.Value("Authorization") = "Excitech"
+        STEPFileOptions.Value("Description") = iProperties.Value("Project", "Description")
+        STEPFileOptions.Value("ExportFitTolerance") = 0.001
+        STEPFileOptions.Value("IncludeSketches") = False
+        STEPFileOptions.Value("Organization") = "Excitech"
+        oOptions.Value("STEPFileOptions") = STEPFileOptions
+    End If
+    ' End of Step file options =======================================
+    
+    'Publish document.
+    Call oPDFConvertor3D.Publish(oDocument, oOptions)
+	oDocument.Close
+    ' End of iLogic rule =======================================================
